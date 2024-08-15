@@ -5,16 +5,21 @@ from bullet import Bullet
 pygame.init()
 
 WIDTH, HEIGHT = 1000, 800
+FPS = 60
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 
 BG = pygame.transform.scale(pygame.image.load("bg.jpeg"), (WIDTH, HEIGHT))
 
-def draw(player, frames, bullets):
+def draw(player, frames, bullets, score, font):
+    text = font.render(f"{score}s", True, (255, 255, 255))
+    text_rect = text.get_rect(topleft = (10, 10))
+    
     WIN.blit(BG, (0, 0))
+    WIN.blit(text, text_rect)
     pygame.draw.rect(WIN, "red", player.sprite)
     
-    if frames % 10 == 0:
+    if frames % 6 == 0:
         bullets.append(Bullet(WIDTH))
     
     for bullet in bullets:
@@ -23,22 +28,60 @@ def draw(player, frames, bullets):
     
     pygame.display.update()
 
-def end():
-    return
+def end(score, font):
+    new = False
+    
+    small_font = pygame.font.Font(None, 74)
+    
+    with open("best.txt", "r") as f:
+        old = int(f.read())
+      
+    best = max(old, score)
+    if best == score:
+        new = True
+    if old == best:
+        new = False
+        
+    with open("best.txt", "w") as f:
+        f.write(str(best))
+        
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type in [pygame.FINGERDOWN, pygame.KEYDOWN]:
+                return
+        
+        score_txt = font.render(str(score), True, (255, 255, 255))
+        rect = score_txt.get_rect(center = (WIDTH // 2, HEIGHT // 2))
+        
+        if new:
+            best_txt = small_font.render("New highscore!" , False, (255, 255, 255))
+            best_rect = best_txt.get_rect(center = (WIDTH // 2, HEIGHT // 2 + 100))
+        else:
+            best_txt = small_font.render(f"Best: {best}" , False, (255, 255, 255))
+            best_rect = best_txt.get_rect(center = (WIDTH // 2, HEIGHT // 2 + 100))
+          
+        WIN.blit(score_txt, rect)
+        WIN.blit(best_txt, best_rect)
+        
+        pygame.display.update()
+        pygame.time.Clock().tick(FPS)
 
 def main():
+    font = pygame.font.Font(None, 125)
     
     while True:
-        game()
-        
-        end()
+        score = game(font)        
+        end(score, font)
 
 def check_limit(player):
     if 0 <= player.x <= WIDTH - player.width:
         return True
     return False
 
-def game():
+def game(font):
     
     player = Player(WIDTH, HEIGHT, 80, 80)
     
@@ -46,6 +89,7 @@ def game():
     right = False
     frames = 0
     bullets = list()
+    score = -1
     
     while True:
         for event in pygame.event.get():
@@ -76,12 +120,15 @@ def game():
             player.move(False)
         
         if check_limit(player):
-            draw(player, frames, bullets)
-        
-        if any(bullet.check_collision(player.sprite) for bullet in bullets if bullet.y >= 200):
-            break
+            draw(player, frames, bullets, score, font)
             
-        pygame.time.Clock().tick(60)
+        if any(bullet.check_collision(player.sprite) for bullet in bullets if bullet.y >= 200):
+            return score
+        
+        if frames % FPS == 0:
+            score += 1
+            
+        pygame.time.Clock().tick(FPS)
         frames += 1
 
 if __name__ == '__main__':
