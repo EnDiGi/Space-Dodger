@@ -9,7 +9,7 @@ class Bullet:
         self.sprite = pygame.Rect(self.x, self.y, 10, 20)
     
     def fall(self):
-        self.y += 5
+        self.y += 7
         self.sprite.y = self.y
        
     def check_collision(self, player):
